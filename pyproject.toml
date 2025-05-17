@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "aracnid-core"
+version = "0.1.0"
+description = "Base interfaces for Aracnid integration connectors"
+authors = ["Jason Romano <aracnid@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/aracnid/aracnid-core"
+keywords = ["abstract", "connector"]
+packages = [{include = "aracnid_core"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
