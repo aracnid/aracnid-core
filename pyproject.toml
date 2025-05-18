@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aracnid-core"
-version = "0.1.2"
+version = "0.1.3"
 description = "Base interfaces for Aracnid integration connectors"
 authors = ["Jason Romano <aracnid@gmail.com>"]
 license = "MIT"
