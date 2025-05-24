@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aracnid-core"
-version = "0.1.3"
+version = "0.2.0"
 description = "Base interfaces for Aracnid integration connectors"
 authors = ["Jason Romano <aracnid@gmail.com>"]
 license = "MIT"
@@ -11,6 +11,7 @@ packages = [{include = "aracnid_core"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
+pydantic = "^2.11.4"
 
 [build-system]
 requires = ["poetry-core"]

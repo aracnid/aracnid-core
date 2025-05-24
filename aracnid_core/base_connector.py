@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
+from .schema.base_model import RecordBase
 
 class BaseConnector(ABC):
     '''Abstract base class for CRUD operations across data sources.'''
 
     @abstractmethod
-    def create(self, record: Dict) -> Dict:
+    def create(self, fields: Dict) -> RecordBase:
         pass
 
     @abstractmethod
