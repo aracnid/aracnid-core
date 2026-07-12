@@ -25,9 +25,12 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 addopts = "-p no:warnings"
+env_files = [".env"]
 log_cli = true
 log_cli_level = "DEBUG"
-env_files = [".env"]
+markers = [
+  "contract: shared BaseConnector contract/conformance tests"
+]
 
 [tool.ruff]
 # Target your current version
