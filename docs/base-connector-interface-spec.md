@@ -1,10 +1,12 @@
 # Base Connector Interface Specification (v1)
+<!-- markdownlint-disable no-duplicate-heading -->
 
 ## Purpose
 
 Define a stable, minimal connector contract shared by Aracnid integration packages (e.g., `i-airtable`, `i-mongodb`, `i-xero2`) for common CRUD workflows.
 
 This contract is intentionally narrow:
+
 - portable across providers
 - explicit about errors and return semantics
 - extensible via capabilities and provider-specific methods
@@ -31,12 +33,15 @@ This contract is intentionally narrow:
 ## Core interface
 
 ## Class
+
 `BaseConnector` (abstract)
 
 ## Constructor
+
 Provider-specific constructor signatures are allowed.
 
 Implementations MUST:
+
 - validate required constructor inputs
 - fail fast on invalid configuration
 - avoid side effects beyond required client initialization
@@ -54,12 +59,15 @@ create_one(record: dict[str, Any]) -> dict[str, Any]
 Create a new record/document/entity.
 
 ### Input
+
 - `record` MUST be a dictionary-like payload.
 
 ### Return
+
 - Provider response for created entity as `dict[str, Any]`.
 
 ### Errors
+
 - `ValueError` for invalid input shape.
 - `RuntimeError` for provider/API failures.
 
@@ -74,13 +82,16 @@ read_one(record_id: str) -> dict[str, Any] | None
 Fetch one entity by provider-native identifier.
 
 ### Input
+
 - `record_id` MUST be a non-empty string.
 
 ### Return
+
 - Entity dictionary if found.
 - `None` if not found.
 
 ### Errors
+
 - `ValueError` for invalid `record_id`.
 - `RuntimeError` for provider failures unrelated to not-found.
 
@@ -89,23 +100,27 @@ Fetch one entity by provider-native identifier.
 ## 3) read_many
 
 ```python
-read_many(filters: dict[str, Any] | None = None) -> list[dict[str, Any]]
+read_many(query: dict[str, Any] | None = None) -> list[dict[str, Any]]
 ```
 
 Fetch multiple entities matching provider-supported filtering.
 
 ### Input
-- `filters` is optional and provider-interpreted.
+
+- `query` is optional and provider-interpreted.
 
 ### Return
+
 - List of entity dictionaries.
 - Empty list when no matches.
 
 ### Errors
+
 - `ValueError` for invalid filter shape/type.
 - `RuntimeError` for provider/API failures.
 
 ### Notes
+
 - Pagination is implementation detail; method returns a flattened list unless documented otherwise by implementation.
 - Connectors MAY provide extended overload/options in their own package docs while still supporting this base signature.
 
@@ -120,13 +135,16 @@ update_one(record_id: str, changes: dict[str, Any]) -> dict[str, Any]
 Partial update (patch-like semantics) of a single entity.
 
 ### Input
+
 - `record_id` non-empty string.
 - `changes` dictionary of fields to modify.
 
 ### Return
+
 - Updated entity as dictionary.
 
 ### Errors
+
 - `ValueError` for invalid inputs.
 - `RuntimeError` for provider/API failures.
 
@@ -141,13 +159,16 @@ replace_one(record_id: str, new_record: dict[str, Any]) -> dict[str, Any]
 Full replacement (put-like semantics) of a single entity.
 
 ### Input
+
 - `record_id` non-empty string.
 - `new_record` full replacement payload dictionary.
 
 ### Return
+
 - Replaced entity as dictionary.
 
 ### Errors
+
 - `ValueError` for invalid inputs.
 - `RuntimeError` for provider/API failures.
 
@@ -162,18 +183,22 @@ delete_one(record_id: str, hard: bool = False) -> bool
 Delete one entity.
 
 ### Input
+
 - `record_id` non-empty string.
 - `hard` requests physical delete when supported.
 
 ### Return
+
 - `True` when delete operation succeeds.
 - `False` allowed for not-found/no-op policy (must be documented by implementation).
 
 ### Errors
+
 - `ValueError` for invalid inputs.
 - `RuntimeError` for provider/API failures.
 
 ### Notes
+
 - Soft delete semantics are provider-specific.
 - If soft delete is unsupported and `hard=False`, implementation MUST document behavior (e.g., fallback to hard delete or raise).
 
@@ -195,10 +220,10 @@ create_many(records: list[dict[str, Any]]) -> list[dict[str, Any]]
 ### 2) update_many (optional)
 
 ```python
-update_many(filters: dict[str, Any], changes: dict[str, Any]) -> int | list[dict[str, Any]]
+update_many(query: dict[str, Any], changes: dict[str, Any]) -> int | list[dict[str, Any]]
 ```
 
-- Applies partial update to multiple entities matching `filters`.
+- Applies partial update to multiple entities matching `query`.
 - Return MUST be documented per connector as either:
   - affected count (`int`), or
   - list of updated entities (`list[dict[str, Any]]`).
@@ -206,24 +231,25 @@ update_many(filters: dict[str, Any], changes: dict[str, Any]) -> int | list[dict
 ### 3) replace_many (optional)
 
 ```python
-replace_many(filters: dict[str, Any], new_record: dict[str, Any]) -> int | list[dict[str, Any]]
+replace_many(query: dict[str, Any], new_record: dict[str, Any]) -> int | list[dict[str, Any]]
 ```
 
-- Applies full replacement to multiple entities matching `filters`.
+- Applies full replacement to multiple entities matching `query`.
 - Return semantics follow `update_many`.
 
 ### 4) delete_many (optional)
 
 ```python
-delete_many(filters: dict[str, Any], hard: bool = False) -> int
+delete_many(query: dict[str, Any], hard: bool = False) -> int
 ```
 
-- Deletes multiple entities matching `filters`.
+- Deletes multiple entities matching `query`.
 - Returns affected count.
 
 ### Bulk-method requirements when implemented
 
 If any optional bulk method is implemented, connector docs MUST define:
+
 - atomicity guarantees (all-or-nothing vs partial success)
 - partial failure behavior/reporting
 - idempotency expectations
@@ -249,7 +275,7 @@ raise RuntimeError("Provider update failed") from exc
 
 ## Input mutation guarantee (required)
 
-Implementations MUST NOT mutate caller-provided input objects (`record`, `changes`, `new_record`, `filters`, etc.).
+Implementations MUST NOT mutate caller-provided input objects (`record`, `changes`, `new_record`, `query`, etc.).
 
 If transformation is needed, operate on copied data structures.
 
@@ -281,6 +307,7 @@ If transformation is needed, operate on copied data structures.
 Implementations SHOULD log operation-level metadata (operation name, safe identifiers, timing) and MUST avoid secrets.
 
 Implementations MUST NOT log:
+
 - API keys/tokens/secrets
 - authorization headers
 - full sensitive payloads unless explicitly redacted
@@ -313,7 +340,7 @@ def capabilities(self) -> dict[str, bool]:
 
 Minimum required keys:
 
-- `supports_filters`
+- `supports_query`
 - `supports_partial_update`
 - `supports_replace_one`
 - `supports_soft_delete`
@@ -352,6 +379,7 @@ Optional provider-specific keys are allowed.
 ### Capability-aware optional assertions
 
 When capability flag is true and method exists, tests SHOULD validate:
+
 - method return type/shape matches connector docs
 - documented partial failure semantics
 - documented idempotency/atomicity behavior where applicable
@@ -423,7 +451,7 @@ class BaseConnector(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_many(self, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    def read_many(self, query: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         raise NotImplementedError
 
     @abstractmethod
