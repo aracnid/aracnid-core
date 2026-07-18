@@ -106,7 +106,7 @@ def _validate_node(node: Any, path: str) -> None:
 
     # mixed logical + field keys disallowed
     has_logical = len(logical_keys) > 0
-    has_field = any(not k.startswith("$") for k in node.keys())
+    has_field = any((not isinstance(k, str)) or (not k.startswith("$")) for k in node.keys())
     if has_logical and has_field:
         raise QueryValidationError(
             f"{path}: cannot mix logical keys {logical_keys} with field keys."

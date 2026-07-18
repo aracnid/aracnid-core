@@ -11,12 +11,12 @@ packages = [{include = "aracnid_core"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-pydantic = "^2.11.4"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.2"
-ruff = "^0.15.20"
 build = "^1.5.0"
+pytest = "^7.2"
+pytest-cov = "^7.1.0"
+ruff = "^0.15.20"
 twine = "^6.2.0"
 
 [build-system]
