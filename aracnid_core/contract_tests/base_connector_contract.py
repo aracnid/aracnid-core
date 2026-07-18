@@ -7,7 +7,7 @@ import pytest
 from aracnid_core.base import BaseConnector
 
 REQUIRED_CAPABILITY_KEYS = {
-    "supports_filters",
+    "supports_query",
     "supports_partial_update",
     "supports_replace_one",
     "supports_soft_delete",
@@ -122,10 +122,10 @@ def test_input_objects_not_mutated(connector: BaseConnector) -> None:
         pass
     assert replacement == replacement_before
 
-    filters = {"x": 1}
-    filters_before = dict(filters)
+    query = {"x": 1}
+    query_before = dict(query)
     try:
-        connector.read_many(filters)
+        connector.read_many(query)
     except RuntimeError:
         pass
-    assert filters == filters_before
+    assert query == query_before

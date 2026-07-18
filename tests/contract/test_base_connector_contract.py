@@ -4,11 +4,11 @@ from typing import Any
 
 import pytest
 
-from aracnid_core.base import BaseConnector
+from aracnid_core.base import QueryDict, BaseConnector
 
 
 REQUIRED_CAPABILITY_KEYS = {
-    "supports_filters",
+    "supports_query",
     "supports_partial_update",
     "supports_replace_one",
     "supports_soft_delete",
@@ -35,7 +35,7 @@ class DummyConnector(BaseConnector):
     @property
     def capabilities(self) -> dict[str, bool]:
         return {
-            "supports_filters": True,
+            "supports_query": True,
             "supports_partial_update": True,
             "supports_replace_one": True,
             "supports_soft_delete": True,
@@ -72,18 +72,18 @@ class DummyConnector(BaseConnector):
         item = self._store.get(record_id)
         return dict(item) if item else None
 
-    def read_many(self, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    def read_many(self, query: QueryDict | None = None) -> list[dict[str, Any]]:
         self._maybe_runtime_error()
-        if filters is not None and not isinstance(filters, dict):
-            raise ValueError("filters must be a dict or None")
+        if query is not None and not isinstance(query, dict):
+            raise ValueError("query must be a QueryDict or None")
 
         rows = list(self._store.values())
-        if not filters:
+        if not query:
             return [dict(r) for r in rows]
 
         def match(row: dict[str, Any]) -> bool:
             fields = row.get("fields", {})
-            return all(fields.get(k) == v for k, v in filters.items())
+            return all(fields.get(k) == v for k, v in query.items())
 
         return [dict(r) for r in rows if match(r)]
 
@@ -121,6 +121,11 @@ class DummyConnector(BaseConnector):
         self._store[record_id]["fields"]["is_deleted"] = True
         return True
 
+    def _read_many_normalized(self, query_dsl: QueryDict) -> list[dict]:
+        # Minimal stub for contract tests
+        # Keep behavior deterministic and side-effect free.
+        return []
+    
 
 @pytest.fixture
 def connector() -> DummyConnector:
@@ -208,10 +213,10 @@ def test_input_objects_not_mutated(connector: DummyConnector) -> None:
     connector.replace_one(rid, replacement)
     assert replacement == replacement_before
 
-    filters = {"name": "beta"}
-    filters_before = dict(filters)
-    _ = connector.read_many(filters)
-    assert filters == filters_before
+    query = {"name": "beta"}
+    query_before = dict(query)
+    _ = connector.read_many(query)
+    assert query == query_before
 
 
 def test_delete_one_returns_bool(connector: DummyConnector) -> None:

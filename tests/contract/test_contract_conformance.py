@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from aracnid_core.base import BaseConnector
+from aracnid_core.base import QueryDict, BaseConnector
 from aracnid_core.contract_tests import base_connector_contract as contract_tests
 
 
@@ -10,7 +10,7 @@ class DummyConnector(BaseConnector):
     @property
     def capabilities(self) -> dict[str, bool]:
         return {
-            "supports_filters": True,
+            "supports_query": True,
             "supports_partial_update": True,
             "supports_replace_one": True,
             "supports_soft_delete": True,
@@ -28,8 +28,8 @@ class DummyConnector(BaseConnector):
             raise ValueError
         return None
 
-    def read_many(self, filters=None):
-        if filters is not None and not isinstance(filters, dict):
+    def read_many(self, query=None):
+        if query is not None and not isinstance(query, dict):
             raise ValueError
         return []
 
@@ -51,6 +51,11 @@ class DummyConnector(BaseConnector):
         if not isinstance(record_id, str) or not record_id:
             raise ValueError
         return False
+
+    def _read_many_normalized(self, query_dsl: QueryDict) -> list[dict]:
+        # Minimal stub for contract tests
+        # Keep behavior deterministic and side-effect free.
+        return []
 
 
 @pytest.fixture
