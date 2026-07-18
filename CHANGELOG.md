@@ -6,6 +6,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.0] - 2026-07-18
+
+### Added
+
+- Added Query DSL v1 utilities in `aracnid_core.query_dsl`:
+  - `validate_query(query)`
+  - `normalize_query(query)`
+- Added support for logical operators: `$and`, `$or`, `$not`.
+- Added support for field operators: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`, `$exists`, `$contains`, `$startsWith`.
+- Added normalized execution hook to connector contract:
+  - `BaseConnector._read_many_normalized(query_dsl)`.
+
+### Changed
+
+- Updated `BaseConnector.read_many(...)` to accept Query DSL input (`query`) and normalize it before execution.
+- Updated connector capability naming from filter-oriented to query-oriented:
+  - `supports_filters` ➜ `supports_query`.
+- Expanded contract tests for `read_many` normalization/delegation behavior and Query DSL validation coverage.
+
+### Fixed
+
+- Fixed Query DSL validation for non-string field keys to raise `QueryValidationError` consistently (instead of `AttributeError` in edge cases).
+
+### Breaking changes
+
+- Connector implementations of `BaseConnector` must implement:
+  - `_read_many_normalized(self, query_dsl) -> list[dict]`
+- Connector capability dictionaries should expose `supports_query` (replacing `supports_filters`).
+- `read_many` contract is now Query DSL–based rather than raw filter-dict semantics.
+
+### Notes
+
+- This release introduces a normalized, validated query path for multi-record reads and improves error-path consistency and test coverage.
+
 ## [1.0.0] - 2026-07-12
 
 ### Added
