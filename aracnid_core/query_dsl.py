@@ -1,8 +1,10 @@
 """Query DSL v1 validation and normalization utilities.
 """
+from datetime import date, datetime
 from typing import Any, Final
 
 from .exceptions import QueryValidationError
+
 
 QueryDict = dict[str, Any]
 
@@ -173,15 +175,26 @@ def _validate_field_ops(op_obj: dict[str, Any], path: str) -> None:
             raise QueryValidationError(f"{path}.$exists: must be boolean.")
 
 
-def _normalize_node(node: dict[str, Any]) -> dict[str, Any]:
-    """Recursively normalize a predicate node into canonical explicit form.
+def _normalize_literal(value: Any) -> Any:
+    """Normalize/validate scalar DSL literal values."""
+    if isinstance(value, datetime):
+        # Reject naive datetimes
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise QueryValidationError(
+                "datetime literals must be timezone-aware (tzinfo required)"
+            )
 
-    Args:
-        node (dict[str, Any]): The predicate node to normalize.
-    
-    Returns:
-        dict[str, Any]: The normalized predicate node.
-    """
+        return value
+
+    if isinstance(value, date):
+        # Keep date semantic as date (do not coerce to datetime)
+        return value
+
+    return value
+
+
+def _normalize_node(node: dict[str, Any]) -> dict[str, Any]:
+    """Recursively normalize a predicate node into canonical explicit form."""
     # logical node
     for op in LOGICAL_OPS:
         if op in node:
@@ -195,9 +208,15 @@ def _normalize_node(node: dict[str, Any]) -> dict[str, Any]:
     single_field_nodes: list[dict[str, Any]] = []
     for field, condition in node.items():
         if isinstance(condition, dict):
-            single_field_nodes.append({field: dict(condition)})
+            normalized_ops: dict[str, Any] = {}
+            for op, op_value in condition.items():
+                if op in {"$in", "$nin"} and isinstance(op_value, list):
+                    normalized_ops[op] = [_normalize_literal(v) for v in op_value]
+                else:
+                    normalized_ops[op] = _normalize_literal(op_value)
+            single_field_nodes.append({field: normalized_ops})
         else:
-            single_field_nodes.append({field: {"$eq": condition}})
+            single_field_nodes.append({field: {"$eq": _normalize_literal(condition)}})
 
     if len(single_field_nodes) == 1:
         return single_field_nodes[0]

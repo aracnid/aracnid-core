@@ -63,6 +63,40 @@ Multiple operators on the same field are combined with implicit AND.
 
 ---
 
+## Supported Value Types and Temporal Semantics (v1)
+
+Field operator values in Query DSL MAY be any JSON-like scalar/object value accepted by the adapter, including:
+
+- string
+- number
+- boolean
+- null
+- arrays (where required by operator, e.g. `$in`, `$nin`)
+- temporal values (`date`, `datetime`) when provided by the caller/runtime language
+
+### Temporal semantics
+
+To ensure consistent cross-adapter behavior, temporal values follow this contract:
+
+#### `date`
+
+- Represents a **calendar date only** (no time-of-day, no timezone semantics).
+- Example intent: `"2026-07-19"` means that calendar day.
+
+#### `datetime` (timezone-aware required)
+
+- `datetime` values **MUST be timezone-aware**.
+- Naive datetimes (no timezone info / `tzinfo is None`) are **invalid** and MUST raise `QueryValidationError`.
+- Aware datetimes represent an **absolute instant in time**.
+- Adapters MAY normalize representation (for example, to UTC), but MUST preserve the same instant.
+
+### Conformance requirements
+
+- Adapters MUST accept timezone-aware datetimes, including non-UTC timezones (e.g., application local timezone).
+- Adapters MUST apply the same temporal semantics across all temporal-capable operators (`$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, and others if added later).
+- Adapters MUST reject naive datetimes consistently with a clear validation error.
+- Adapters MUST document any backend-specific representation constraints while preserving the above semantics.
+
 ## Supported Operators (v1)
 
 ### Logical operators

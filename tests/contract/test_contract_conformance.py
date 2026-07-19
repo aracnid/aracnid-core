@@ -4,6 +4,7 @@ import pytest
 
 from aracnid_core.base import QueryDict, BaseConnector
 from aracnid_core.contract_tests import base_connector_contract as contract_tests
+from aracnid_core.contract_tests import query_dsl_temporal_contract as temporal_contract_tests
 
 
 class DummyConnector(BaseConnector):
@@ -72,3 +73,17 @@ test_update_one_validates_input = contract_tests.test_update_one_validates_input
 test_replace_one_validates_input = contract_tests.test_replace_one_validates_input
 test_delete_one_validates_input = contract_tests.test_delete_one_validates_input
 test_input_objects_not_mutated = contract_tests.test_input_objects_not_mutated
+
+# Temporal Query DSL contract tests
+test_normalize_query_accepts_timezone_aware_datetime_local_tz = (
+    temporal_contract_tests.test_normalize_query_accepts_timezone_aware_datetime_local_tz
+)
+test_normalize_query_accepts_timezone_aware_datetime_utc = (
+    temporal_contract_tests.test_normalize_query_accepts_timezone_aware_datetime_utc
+)
+test_normalize_query_rejects_naive_datetime = (
+    temporal_contract_tests.test_normalize_query_rejects_naive_datetime
+)
+test_normalize_query_date_literal_still_valid = (
+    temporal_contract_tests.test_normalize_query_date_literal_still_valid
+)
