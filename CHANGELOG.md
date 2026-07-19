@@ -6,6 +6,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.2.0] - 2026-07-19
+
+### Added
+
+- Query DSL v1 temporal semantics contract documentation in `docs/query-dsl.md` under:
+  - `Supported Value Types and Temporal Semantics (v1)`
+
+### Changed
+
+- Query DSL normalization/validation now enforces timezone-aware `datetime` literals.
+- Naive `datetime` values (missing/invalid `tzinfo`) are rejected with `QueryValidationError`.
+- Core preserves caller-provided aware datetime representation; UTC normalization is adapter-defined.
+
+### Contract / Conformance
+
+- Added shared temporal contract tests for Query DSL datetime behavior.
+- Integrated temporal contract tests into core conformance test execution.
+- Required behavior now includes:
+  - accepting timezone-aware datetimes (including non-UTC/local timezones),
+  - rejecting naive datetimes,
+  - preserving `date` as calendar-date semantic.
+
 ## [v1.1.0] - 2026-07-18
 
 ### Added
