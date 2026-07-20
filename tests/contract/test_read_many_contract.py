@@ -15,7 +15,8 @@ class SpyConnector(BaseConnector):
     """
 
     def __init__(self) -> None:
-        self.last_query_dsl: dict[str, Any] | None = None
+        self.last_query: dict[str, Any] | None = None
+        self.last_sort: list[dict[str, Any]] | None = None
         self.result_to_return: list[dict] = [{"id": "r1", "name": "alpha"}]
 
     @property
@@ -44,8 +45,9 @@ class SpyConnector(BaseConnector):
     def delete_one(self, record_id: str, hard: bool = False) -> bool:
         return True
 
-    def _read_many_normalized(self, query_dsl: dict[str, Any]) -> list[dict]:
-        self.last_query_dsl = query_dsl
+    def _read_many_normalized(self, query_dsl: dict[str, Any], sort_dsl: list[dict[str, Any]] | None = None) -> list[dict]:
+        self.last_query = query_dsl
+        self.last_sort = sort_dsl
         return self.result_to_return
 
 
@@ -57,18 +59,18 @@ def connector() -> SpyConnector:
 def test_read_many_none_normalizes_to_empty_query(connector: SpyConnector) -> None:
     out = connector.read_many(None)
     assert out == connector.result_to_return
-    assert connector.last_query_dsl == {}
+    assert connector.last_query == {}
 
 
 def test_read_many_shorthand_eq_is_normalized(connector: SpyConnector) -> None:
     out = connector.read_many({"name": "beta"})
     assert out == connector.result_to_return
-    assert connector.last_query_dsl == {"name": {"$eq": "beta"}}
+    assert connector.last_query == {"name": {"$eq": "beta"}}
 
 
 def test_read_many_multi_field_shorthand_normalizes_to_and(connector: SpyConnector) -> None:
     _ = connector.read_many({"name": "beta", "status": "active"})
-    assert connector.last_query_dsl == {
+    assert connector.last_query == {
         "$and": [
             {"name": {"$eq": "beta"}},
             {"status": {"$eq": "active"}},
@@ -85,7 +87,7 @@ def test_read_many_nested_boolean_nodes_normalize_recursively(connector: SpyConn
             ]
         }
     )
-    assert connector.last_query_dsl == {
+    assert connector.last_query == {
         "$or": [
             {"name": {"$eq": "beta"}},
             {"$and": [{"status": {"$eq": "active"}}, {"score": {"$gt": 10}}]},
@@ -112,8 +114,8 @@ def test_read_many_passes_normalized_not_raw_shape(connector: SpyConnector) -> N
 
     _ = connector.read_many(raw)
 
-    assert connector.last_query_dsl == {"name": {"$eq": "beta"}}
-    assert connector.last_query_dsl != raw
+    assert connector.last_query == {"name": {"$eq": "beta"}}
+    assert connector.last_query != raw
 
 
 def test_read_many_returns_executor_result_passthrough(connector: SpyConnector) -> None:
@@ -122,3 +124,19 @@ def test_read_many_returns_executor_result_passthrough(connector: SpyConnector) 
     out = connector.read_many({"name": "zeta"})
 
     assert out == [{"id": "x1", "name": "zeta"}]
+
+
+def test_read_many_passes_normalized_query_and_sort_to_adapter() -> None:
+    c = SpyConnector()
+    c.read_many(
+        query={"status": "active"},
+        sort=[{"DueDate": 1}, {"Priority": -1}],
+    )
+    assert c.last_query == {"status": {"$eq": "active"}}
+    assert c.last_sort == [{"DueDate": 1}, {"Priority": -1}]
+
+
+def test_read_many_defaults_sort_to_empty_list() -> None:
+    c = SpyConnector()
+    c.read_many(query={"status": "active"})
+    assert c.last_sort == []

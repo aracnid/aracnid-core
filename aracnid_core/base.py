@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from .query_dsl import QueryDict, normalize_query
+from .query_dsl import QueryDict, normalize_query, normalize_sort, SortSpec
 
 
 class BaseConnector(ABC):
@@ -51,14 +51,20 @@ class BaseConnector(ABC):
         raise NotImplementedError
 
 
-    def read_many(self, query: QueryDict | None = None) -> list[dict]:
+    def read_many(
+        self,
+        query: QueryDict | None = None,
+        sort: SortSpec | None = None,
+    ) -> list[dict]:
         """Read multiple records using Query DSL v1.
 
-        The query is normalized to canonical explicit form before
+        The query and sort are normalized to canonical explicit form before
         adapter-specific execution.
         """
         query_dsl = normalize_query(query)
-        return self._read_many_normalized(query_dsl)
+        sort_dsl = normalize_sort(sort)
+        return self._read_many_normalized(query_dsl, sort_dsl)
+
 
 
     @abstractmethod
@@ -85,11 +91,14 @@ class BaseConnector(ABC):
     
 
     @abstractmethod
-    def _read_many_normalized(self, query_dsl: QueryDict) -> list[dict]:
-        """Execute a normalized Query DSL object and return records.
+    def _read_many_normalized(
+        self,
+        query_dsl: QueryDict,
+        sort_dsl: SortSpec,
+    ) -> list[dict]:
+        """Execute normalized Query DSL + sort spec and return records.
 
-        Implementations should assume `query_dsl` is already validated
+        Implementations should assume both are already validated
         and normalized.
         """
-        raise NotImplementedError
-    
+        raise NotImplementedError    

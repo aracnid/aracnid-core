@@ -3,7 +3,13 @@
 import pytest
 
 from aracnid_core.exceptions import QueryValidationError
-from aracnid_core.query_dsl import normalize_query, validate_query
+from aracnid_core.query_dsl import (
+    normalize_query,
+    normalize_sort,
+    validate_query,
+    validate_sort,
+    SortSpec,
+)
 
 
 def test_validate_accepts_none_and_empty() -> None:
@@ -136,9 +142,9 @@ def test_normalize_query_raises_query_validation_error(query: dict) -> None:
 
 def test_validate_query_rejects_dollar_field_name_defensive_branch() -> None:
     """Test that validate_query rejects a field name starting with $.
-     
+
     This case will probably never occur in practice,
-    but we want to ensure that the field-node validation branch is exercised.        
+    but we want to ensure that the field-node validation branch is exercised.
     """
     class _HiddenDollarKeyDict(dict):
         """Hide keys from plain iteration so field-node validation is exercised."""
@@ -154,3 +160,63 @@ def test_validate_query_rejects_dollar_field_name_defensive_branch() -> None:
     ):
         validate_query(query)
 
+
+# ----------------------------
+# Sort validation/normalization
+# ----------------------------
+
+def test_validate_sort_accepts_none_and_valid_specs() -> None:
+    validate_sort(None)
+    validate_sort([{"DueDate": 1}])
+    validate_sort([{"DueDate": 1}, {"Priority": -1}])
+
+
+def test_normalize_sort_none_to_empty_list() -> None:
+    assert normalize_sort(None) == []
+
+
+def test_normalize_sort_preserves_order_and_values() -> None:
+    sort: SortSpec = [{"DueDate": 1}, {"Priority": -1}, {"Name": 1}]
+    assert normalize_sort(sort) == [{"DueDate": 1}, {"Priority": -1}, {"Name": 1}]
+
+
+@pytest.mark.parametrize(
+    "sort,match",
+    [
+        ("not-a-list", r"sort must be a list or None"),
+        ([], r"sort must not be an empty list"),
+        ([1], r"sort\[0\].*must be an object"),
+        ([{}], r"sort\[0\].*exactly one field"),
+        ([{"DueDate": 1, "Priority": -1}], r"sort\[0\].*exactly one field"),
+        ([{"": 1}], r"sort\[0\].*non-empty string"),
+        ([{"$bad": 1}], r"cannot start with '\$'"),
+        ([{"DueDate": 0}], r"sort direction must be 1 \(asc\) or -1 \(desc\)"),
+        ([{"DueDate": "asc"}], r"sort direction must be 1 \(asc\) or -1 \(desc\)"),
+        ([{"DueDate": True}], r"sort direction must be 1 \(asc\) or -1 \(desc\)"),
+        ([{"DueDate": 1}, {"DueDate": -1}], r"duplicate sort field 'DueDate'"),
+    ],
+)
+def test_validate_sort_raises_expected_errors(sort, match: str) -> None:
+    with pytest.raises(QueryValidationError, match=match):
+        validate_sort(sort)
+
+
+@pytest.mark.parametrize(
+    "sort",
+    [
+        "not-a-list",
+        [],
+        [1],
+        [{}],
+        [{"DueDate": 1, "Priority": -1}],
+        [{"": 1}],
+        [{"$bad": 1}],
+        [{"DueDate": 0}],
+        [{"DueDate": "asc"}],
+        [{"DueDate": True}],
+        [{"DueDate": 1}, {"DueDate": -1}],
+    ],
+)
+def test_normalize_sort_propagates_validation_error(sort) -> None:
+    with pytest.raises(QueryValidationError):
+        normalize_sort(sort)
