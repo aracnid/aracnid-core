@@ -1,12 +1,15 @@
 """Query DSL v1 validation and normalization utilities.
 """
 from datetime import date, datetime
-from typing import Any, Final
+from typing import Any, Final, Literal, TypeAlias
 
 from .exceptions import QueryValidationError
 
 
 QueryDict = dict[str, Any]
+SortDirection: TypeAlias = Literal[1, -1]
+SortEntry: TypeAlias = dict[str, SortDirection]
+SortSpec: TypeAlias = list[SortEntry]
 
 LOGICAL_OPS: Final[set[str]] = {"$and", "$or", "$not"}
 FIELD_OPS: Final[set[str]] = {
@@ -79,6 +82,86 @@ def normalize_query(query: QueryDict | None) -> QueryDict:
 
     validate_query(query)
     return _normalize_node(query)
+
+
+def validate_sort(sort: SortSpec | None) -> None:
+    """Validate Mongo-style sort spec.
+
+    Rules:
+    - None is valid (no sort).
+    - sort must be a non-empty list when provided.
+    - each list item must be a dict with exactly one key.
+    - field name must be a non-empty string and must not start with '$'.
+    - direction must be exactly 1 or -1.
+    - duplicate fields are not allowed.
+
+    Args:
+        sort (SortSpec | None): The sort specification to validate.
+
+    Raises:
+        QueryValidationError: If the sort specification does not conform to the rules.
+    """
+    if sort is None:
+        return
+
+    if not isinstance(sort, list):
+        raise QueryValidationError("sort must be a list or None.")
+
+    if len(sort) == 0:
+        raise QueryValidationError("sort must not be an empty list.")
+
+    seen_fields: set[str] = set()
+
+    for i, entry in enumerate(sort):
+        path = f"sort[{i}]"
+
+        if not isinstance(entry, dict):
+            raise QueryValidationError(f"{path}: sort entry must be an object.")
+
+        if len(entry) != 1:
+            raise QueryValidationError(
+                f"{path}: sort entry must contain exactly one field."
+            )
+
+        field, direction = next(iter(entry.items()))
+
+        if not isinstance(field, str) or field.strip() == "":
+            raise QueryValidationError(f"{path}: sort field name must be a non-empty string.")
+
+        if field.startswith("$"):
+            raise QueryValidationError(
+                f"{path}: sort field name '{field}' cannot start with '$'."
+            )
+
+        if field in seen_fields:
+            raise QueryValidationError(f"{path}: duplicate sort field '{field}'.")
+
+        # bool is a subclass of int in Python, so exclude bool explicitly
+        if isinstance(direction, bool) or direction not in (1, -1):
+            raise QueryValidationError(
+                f"{path}.{field}: sort direction must be 1 (asc) or -1 (desc)."
+            )
+
+        seen_fields.add(field)
+
+
+def normalize_sort(sort: SortSpec | None) -> SortSpec:
+    """Normalize sort into canonical form.
+
+    - None -> []
+    - preserves input order after validation
+
+    Args:
+        sort (SortSpec | None): The sort specification to normalize.
+
+    Returns:
+        SortSpec: The normalized sort specification.
+    """
+    if sort is None:
+        return []
+
+    validate_sort(sort)
+    return [{field: direction} for entry in sort for field, direction in entry.items()]
 
 
 def _validate_node(node: Any, path: str) -> None:
