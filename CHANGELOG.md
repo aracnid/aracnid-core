@@ -6,6 +6,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.3.0] - 2026-07-20
+
+### Added
+
+- Added Mongo-style sorting support to Query DSL for `read_many(...)`:
+  - `sort=[{"FieldA": 1}, {"FieldB": -1}]`
+  - `1` = ascending, `-1` = descending
+  - list order defines sort precedence (multi-key sort)
+
+### Changed
+
+- Updated `BaseConnector.read_many(...)` to accept optional `sort` input.
+- Updated base connector normalized execution contract so adapters receive both:
+  - normalized `query_dsl`
+  - normalized `sort_dsl`
+- Expanded Query DSL docs (`docs/query-dsl.md`) to include:
+  - sort API shape
+  - validation rules
+  - normalization behavior
+  - valid/invalid examples
+
+### Validation / Contract
+
+- Added `validate_sort(...)` and `normalize_sort(...)` to Query DSL utilities.
+- Enforced strict sort validation with `QueryValidationError` on invalid specs:
+  - `sort` must be `None` or a non-empty list
+  - each entry must be a single-key object
+  - field name must be a non-empty string and must not start with `$`
+  - direction must be exactly `1` or `-1` (boolean values rejected)
+  - duplicate sort fields are invalid
+
+### Tests
+
+- Extended Query DSL contract tests to cover sort validation and normalization.
+- Updated read-many contract tests (including spy connector signature) to verify normalized query and sort forwarding behavior.
+  
+
 ## [v1.2.0] - 2026-07-19
 
 ### Added
