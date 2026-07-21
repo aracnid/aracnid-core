@@ -4,7 +4,9 @@ import pytest
 
 from aracnid_core.base import QueryDict, BaseConnector
 from aracnid_core.contract_tests import base_connector_contract as contract_tests
+from aracnid_core.contract_tests import query_dsl_sort_contract as sort_contract_tests
 from aracnid_core.contract_tests import query_dsl_temporal_contract as temporal_contract_tests
+from aracnid_core.query_dsl import SortSpec
 
 
 class DummyConnector(BaseConnector):
@@ -29,11 +31,6 @@ class DummyConnector(BaseConnector):
             raise ValueError
         return None
 
-    def read_many(self, query=None):
-        if query is not None and not isinstance(query, dict):
-            raise ValueError
-        return []
-
     def update_one(self, record_id, changes):
         if not isinstance(record_id, str) or not record_id:
             raise ValueError
@@ -53,9 +50,9 @@ class DummyConnector(BaseConnector):
             raise ValueError
         return False
 
-    def _read_many_normalized(self, query_dsl: QueryDict) -> list[dict]:
-        # Minimal stub for contract tests
-        # Keep behavior deterministic and side-effect free.
+    def _read_many_normalized(self, query_dsl: QueryDict, sort_dsl: SortSpec) -> list[dict]:
+        if query_dsl is not None and not isinstance(query_dsl, dict):
+            raise ValueError
         return []
 
 
@@ -73,6 +70,20 @@ test_update_one_validates_input = contract_tests.test_update_one_validates_input
 test_replace_one_validates_input = contract_tests.test_replace_one_validates_input
 test_delete_one_validates_input = contract_tests.test_delete_one_validates_input
 test_input_objects_not_mutated = contract_tests.test_input_objects_not_mutated
+
+# Query DSL Sort contract tests
+test_normalize_sort_accepts_none = (
+    sort_contract_tests.test_normalize_sort_accepts_none
+)
+test_normalize_sort_accepts_single_and_multi = (
+    sort_contract_tests.test_normalize_sort_accepts_single_and_multi
+)
+test_normalize_sort_rejects_invalid_shapes = (
+    sort_contract_tests.test_normalize_sort_rejects_invalid_shapes
+)
+test_normalize_sort_rejects_duplicate_fields = (
+    sort_contract_tests.test_normalize_sort_rejects_duplicate_fields
+)
 
 # Temporal Query DSL contract tests
 test_normalize_query_accepts_timezone_aware_datetime_local_tz = (

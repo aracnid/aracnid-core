@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from aracnid_core.base import QueryDict, BaseConnector
+from aracnid_core.query_dsl import SortSpec
 
 
 REQUIRED_CAPABILITY_KEYS = {
@@ -72,21 +73,6 @@ class DummyConnector(BaseConnector):
         item = self._store.get(record_id)
         return dict(item) if item else None
 
-    def read_many(self, query: QueryDict | None = None) -> list[dict[str, Any]]:
-        self._maybe_runtime_error()
-        if query is not None and not isinstance(query, dict):
-            raise ValueError("query must be a QueryDict or None")
-
-        rows = list(self._store.values())
-        if not query:
-            return [dict(r) for r in rows]
-
-        def match(row: dict[str, Any]) -> bool:
-            fields = row.get("fields", {})
-            return all(fields.get(k) == v for k, v in query.items())
-
-        return [dict(r) for r in rows if match(r)]
-
     def update_one(self, record_id: str, changes: dict[str, Any]) -> dict[str, Any]:
         self._maybe_runtime_error()
         if not isinstance(record_id, str) or not record_id.strip():
@@ -121,10 +107,20 @@ class DummyConnector(BaseConnector):
         self._store[record_id]["fields"]["is_deleted"] = True
         return True
 
-    def _read_many_normalized(self, query_dsl: QueryDict) -> list[dict]:
-        # Minimal stub for contract tests
-        # Keep behavior deterministic and side-effect free.
-        return []
+    def _read_many_normalized(self, query_dsl: QueryDict, sort_dsl: SortSpec) -> list[dict]:
+        self._maybe_runtime_error()
+        if query_dsl is not None and not isinstance(query_dsl, dict):
+            raise ValueError("query must be a QueryDict or None")
+
+        rows = list(self._store.values())
+        if not query_dsl:
+            return [dict(r) for r in rows]
+
+        def match(row: dict[str, Any]) -> bool:
+            fields = row.get("fields", {})
+            return all(fields.get(k) == v for k, v in query_dsl.items())
+
+        return [dict(r) for r in rows if match(r)]
     
 
 @pytest.fixture

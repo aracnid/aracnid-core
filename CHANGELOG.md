@@ -42,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extended Query DSL contract tests to cover sort validation and normalization.
 - Updated read-many contract tests (including spy connector signature) to verify normalized query and sort forwarding behavior.
   
-
 ## [v1.2.0] - 2026-07-19
 
 ### Added
