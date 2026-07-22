@@ -56,3 +56,14 @@ def test_coerce_datetime_timezone_rejects_naive_input() -> None:
 
     with pytest.raises(ValueError, match="Naive datetimes are not supported"):
         coerce_datetime_timezone(src, cfg)
+
+
+def test_coerce_datetime_timezone_local_mode_requires_local_timezone() -> None:
+    src = datetime(2026, 7, 22, 12, 0, 0, tzinfo=timezone.utc)
+    cfg = DateTimeTZConfig(mode=DateTimeTZMode.LOCAL, local_timezone=None)
+
+    with pytest.raises(
+        ValueError,
+        match="Local timezone is required when DateTimeTZMode is LOCAL",
+    ):
+        coerce_datetime_timezone(src, cfg)

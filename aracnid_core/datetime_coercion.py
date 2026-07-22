@@ -21,5 +21,10 @@ def coerce_datetime_timezone(dt: datetime, cfg: DateTimeTZConfig) -> datetime:
     if cfg.mode is DateTimeTZMode.UTC:
         return dt.astimezone(timezone.utc)
 
-    # LOCAL mode (guaranteed non-None by config validation)
+    # Defensive guard for manually-constructed configs that bypass env loader
+    if cfg.local_timezone is None:
+        raise ValueError(
+            "Local timezone is required when DateTimeTZMode is LOCAL"
+        )
+
     return dt.astimezone(cfg.local_timezone)

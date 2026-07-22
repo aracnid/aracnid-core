@@ -328,6 +328,34 @@ Implementations MUST NOT log:
 
 ---
 
+## Datetime timezone coercion (optional standardized behavior)
+
+Some providers return datetime values as strings (for example ISO-8601).  
+When a connector normalizes datetime values into Python `datetime` objects, the following standardized configuration SHOULD be used across `aracnid-*` connectors for consistent behavior.
+
+### Environment variables
+
+- `ARACNID_DATETIME_TZ_MODE=utc|local|keep`
+  - `utc` (default): normalize aware datetimes to UTC.
+  - `local`: normalize aware datetimes to the configured IANA timezone.
+  - `keep`: preserve parsed source timezone/offset.
+- `ARACNID_LOCAL_TIMEZONE=<IANA timezone>`
+  - Required when `ARACNID_DATETIME_TZ_MODE=local`.
+  - Example: `America/New_York`.
+
+### Validation rules
+
+- Naive datetimes are not valid for normalized datetime handling and MUST raise `ValueError`.
+- If `ARACNID_DATETIME_TZ_MODE=local` is set without `ARACNID_LOCAL_TIMEZONE`, configuration loading MUST raise `ValueError`.
+- Implementations MUST NOT fall back to host/system local timezone implicitly.
+
+### Notes
+
+- This section is optional because not all providers expose datetime values in a way that requires coercion.
+- Connectors that implement datetime normalization SHOULD document which fields are normalized and when normalization occurs (read path, write path, or both).
+
+---
+
 ## Capabilities (required property)
 
 Each implementation MUST expose a capabilities descriptor:
