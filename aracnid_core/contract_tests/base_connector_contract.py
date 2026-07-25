@@ -129,3 +129,54 @@ def test_input_objects_not_mutated(connector: BaseConnector) -> None:
     except RuntimeError:
         pass
     assert query == query_before
+
+
+def _capability_enabled(connector: BaseConnector, key: str) -> bool:
+    return bool(connector.capabilities.get(key, False))
+
+
+def _require_optional_method(
+    connector: BaseConnector,
+    capability_key: str,
+    method_name: str,
+) -> object:
+    if not _capability_enabled(connector, capability_key):
+        pytest.skip(f"{capability_key} not enabled")
+
+    method = getattr(connector, method_name, None)
+    if not callable(method):
+        pytest.fail(
+            f"Capability '{capability_key}' is True, but '{method_name}' is not implemented"
+        )
+
+    return method
+
+
+@pytest.mark.contract
+def test_update_many_returns_non_negative_count_when_supported(
+    connector: BaseConnector,
+) -> None:
+    method = _require_optional_method(connector, "supports_update_many", "update_many")
+    result = method({"__aracnid_contract_no_match__": True}, {"__aracnid_contract__": True})
+    assert isinstance(result, int)
+    assert result >= 0
+
+
+@pytest.mark.contract
+def test_replace_many_returns_non_negative_count_when_supported(
+    connector: BaseConnector,
+) -> None:
+    method = _require_optional_method(connector, "supports_replace_many", "replace_many")
+    result = method({"__aracnid_contract_no_match__": True}, {"__aracnid_contract__": True})
+    assert isinstance(result, int)
+    assert result >= 0
+
+
+@pytest.mark.contract
+def test_delete_many_returns_non_negative_count_when_supported(
+    connector: BaseConnector,
+) -> None:
+    method = _require_optional_method(connector, "supports_delete_many", "delete_many")
+    result = method({"__aracnid_contract_no_match__": True}, hard=True)
+    assert isinstance(result, int)
+    assert result >= 0

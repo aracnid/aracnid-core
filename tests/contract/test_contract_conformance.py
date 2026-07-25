@@ -70,6 +70,15 @@ test_update_one_validates_input = contract_tests.test_update_one_validates_input
 test_replace_one_validates_input = contract_tests.test_replace_one_validates_input
 test_delete_one_validates_input = contract_tests.test_delete_one_validates_input
 test_input_objects_not_mutated = contract_tests.test_input_objects_not_mutated
+test_update_many_returns_non_negative_count_when_supported = (
+    contract_tests.test_update_many_returns_non_negative_count_when_supported
+)
+test_replace_many_returns_non_negative_count_when_supported = (
+    contract_tests.test_replace_many_returns_non_negative_count_when_supported
+)
+test_delete_many_returns_non_negative_count_when_supported = (
+    contract_tests.test_delete_many_returns_non_negative_count_when_supported
+)
 
 # Query DSL Sort contract tests
 test_normalize_sort_accepts_none = (
