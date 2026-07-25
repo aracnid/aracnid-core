@@ -220,22 +220,20 @@ create_many(records: list[dict[str, Any]]) -> list[dict[str, Any]]
 ### 2) update_many (optional)
 
 ```python
-update_many(query: dict[str, Any], changes: dict[str, Any]) -> int | list[dict[str, Any]]
+update_many(query: dict[str, Any], changes: dict[str, Any]) -> int
 ```
 
 - Applies partial update to multiple entities matching `query`.
-- Return MUST be documented per connector as either:
-  - affected count (`int`), or
-  - list of updated entities (`list[dict[str, Any]]`).
+- Returns affected count.
 
 ### 3) replace_many (optional)
 
 ```python
-replace_many(query: dict[str, Any], new_record: dict[str, Any]) -> int | list[dict[str, Any]]
+replace_many(query: dict[str, Any], new_record: dict[str, Any]) -> int
 ```
 
 - Applies full replacement to multiple entities matching `query`.
-- Return semantics follow `update_many`.
+- Returns affected count.
 
 ### 4) delete_many (optional)
 
@@ -254,7 +252,12 @@ If any optional bulk method is implemented, connector docs MUST define:
 - partial failure behavior/reporting
 - idempotency expectations
 - provider rate-limit implications
-- exact return-shape semantics
+- return semantics for each bulk method
+
+For `update_many`, `replace_many`, and `delete_many`, return value MUST be a non-negative `int`.
+
+- `0` means no entities were affected.
+- Connectors MUST document what "affected" means per provider (`matched`, `modified`, or `successfully processed`).
 
 ---
 
@@ -408,7 +411,8 @@ Optional provider-specific keys are allowed.
 
 When capability flag is true and method exists, tests SHOULD validate:
 
-- method return type/shape matches connector docs
+- `create_many` returns `list[dict[str, Any]]`
+- `update_many`, `replace_many`, `delete_many` return non-negative `int`
 - documented partial failure semantics
 - documented idempotency/atomicity behavior where applicable
 
