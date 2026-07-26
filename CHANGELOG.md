@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.5.0] - 2026-07-26
+
+### Added
+
+- Added Mongo-style Query DSL regex predicate support:
+  - `$regex` field operator for pattern matching.
+  - `$options` modifier operator (requires `$regex`) with supported flags: `i`, `m`, `s`, `x`, `u`.
+
+### Changed
+
+- Updated Query DSL validation to enforce regex-specific operator rules:
+  - `$regex` must be a string pattern or compiled regex object.
+  - `$options` must be a string and is only valid when `$regex` is present in the same operator object.
+- Updated Query DSL documentation (`docs/query-dsl.md`) with regex semantics and validation constraints.
+
+### Testing
+
+- Added Query DSL contract test coverage for `$regex`/`$options` valid and invalid forms.
+
 ## [v1.4.0] - 2026-07-25
 
 ### Changed
