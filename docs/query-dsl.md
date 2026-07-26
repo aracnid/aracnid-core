@@ -140,6 +140,25 @@ To ensure consistent cross-adapter behavior, temporal values follow this contrac
 - `$exists` (boolean)
 - `$contains` (string containment, backend support optional)
 - `$startsWith` (string prefix, backend support optional)
+- `$regex` (Mongo-style regex predicate)
+- `$options` (regex flags modifier for `$regex`)
+
+#### Regex semantics (`$regex` / `$options`)
+
+`$regex` is modeled after MongoDB query predicates.
+
+- `$regex` accepts:
+  - a string regex pattern (for example, `"^acme"`), or
+  - a language-native compiled regex object when available.
+- `$options` is optional and modifies `$regex` behavior.
+- `$options` is valid only when `$regex` appears in the same operator object.
+- Supported `$options` flags are: `i`, `m`, `s`, `x`, `u`.
+
+Example:
+
+```json
+{ "name": { "$regex": "^acme", "$options": "i" } }
+```
 
 ---
 
@@ -336,6 +355,8 @@ Reason: duplicate sort fields are invalid.
    - only supported operators allowed.
    - `$in`/`$nin` require non-empty arrays.
    - `$exists` requires boolean.
+  - `$regex` requires a string pattern (or compiled regex object in language runtimes that support it).
+  - `$options` requires a string containing only `i`, `m`, `s`, `x`, `u` and requires `$regex` in the same operator object.
 6. Null handling:
    - `{"field": null}` is valid and equivalent to `{"field":{"$eq":null}}`.
    - adapters decide backend-specific null semantics.

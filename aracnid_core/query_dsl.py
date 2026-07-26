@@ -1,5 +1,6 @@
 """Query DSL v1 validation and normalization utilities.
 """
+import re
 from datetime import date, datetime
 from typing import Any, Final, Literal, TypeAlias
 
@@ -24,8 +25,11 @@ FIELD_OPS: Final[set[str]] = {
     "$exists",
     "$contains",
     "$startsWith",
+    "$regex",
+    "$options",
 }
 ALL_OPS: Final[set[str]] = LOGICAL_OPS | FIELD_OPS
+REGEX_OPTION_FLAGS: Final[set[str]] = {"i", "m", "s", "x", "u"}
 
 
 def validate_query(query: QueryDict | None) -> None:
@@ -256,6 +260,27 @@ def _validate_field_ops(op_obj: dict[str, Any], path: str) -> None:
 
         if op == "$exists" and not isinstance(value, bool):
             raise QueryValidationError(f"{path}.$exists: must be boolean.")
+
+        if op == "$regex" and not isinstance(value, (str, re.Pattern)):
+            raise QueryValidationError(
+                f"{path}.$regex: must be a string pattern or compiled regex."
+            )
+
+        if op == "$options":
+            if not isinstance(value, str):
+                raise QueryValidationError(f"{path}.$options: must be a string.")
+
+            invalid_flags = {flag for flag in value if flag not in REGEX_OPTION_FLAGS}
+            if invalid_flags:
+                sorted_invalid = "".join(sorted(invalid_flags))
+                raise QueryValidationError(
+                    f"{path}.$options: contains unsupported regex option(s) '{sorted_invalid}'."
+                )
+
+    if "$options" in op_obj and "$regex" not in op_obj:
+        raise QueryValidationError(
+            f"{path}.$options: requires '$regex' in the same operator object."
+        )
 
 
 def _normalize_literal(value: Any) -> Any:

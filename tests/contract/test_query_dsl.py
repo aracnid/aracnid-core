@@ -1,5 +1,7 @@
 """Tests for the Query DSL normalization and validation.
 """
+import re
+
 import pytest
 
 from aracnid_core.exceptions import QueryValidationError
@@ -26,6 +28,12 @@ def test_validate_logical_nodes() -> None:
     validate_query({"$and": [{"a": {"$eq": 1}}, {"b": {"$gt": 2}}]})
     validate_query({"$or": [{"a": 1}, {"b": 2}]})
     validate_query({"$not": {"archived": {"$eq": True}}})
+
+
+def test_validate_regex_operator_accepts_mongo_style_pattern() -> None:
+    validate_query({"name": {"$regex": "^Acme"}})
+    validate_query({"name": {"$regex": "^acme", "$options": "i"}})
+    validate_query({"name": {"$regex": re.compile(r"^Acme")}})
 
 def test_normalize_query_preserves_not_and_normalizes_child() -> None:
     query = {"$not": {"name": "alpha"}}
@@ -79,6 +87,12 @@ def test_normalize_preserves_logical_structure() -> None:
     }
 
 
+def test_normalize_preserves_regex_and_options() -> None:
+    assert normalize_query({"name": {"$regex": "^acme", "$options": "i"}}) == {
+        "name": {"$regex": "^acme", "$options": "i"}
+    }
+
+
 def test_normalize_none_empty() -> None:
     assert normalize_query(None) == {}
     assert normalize_query({}) == {}
@@ -100,6 +114,10 @@ def test_normalize_none_empty() -> None:
         ({"name": {"$in": "not-a-list"}}, r"\$in.*non-empty list"),
         ({"name": {"$nin": []}}, r"\$nin.*non-empty list"),
         ({"name": {"$exists": "yes"}}, r"\$exists.*boolean"),
+        ({"name": {"$regex": 123}}, r"\$regex.*string pattern or compiled regex"),
+        ({"name": {"$options": "i"}}, r"\$options.*requires '\$regex'"),
+        ({"name": {"$regex": "abc", "$options": 7}}, r"\$options.*must be a string"),
+        ({"name": {"$regex": "abc", "$options": "iz"}}, r"\$options.*unsupported regex option\(s\)"),
         ({1: "alpha"}, r"field names must be strings"),
     ],
 )
@@ -116,6 +134,8 @@ def test_validate_query_raises_expected_errors(query, match: str) -> None:
         {"name": {"$in": []}},
         {"$not": [{"name": "alpha"}]},
         {"name": {}},
+        {"name": {"$regex": 123}},
+        {"name": {"$options": "i"}},
     ],
 )
 def test_normalize_query_propagates_validation_error(query) -> None:
@@ -133,6 +153,8 @@ def test_normalize_query_propagates_validation_error(query) -> None:
         {"name": {"$in": "not-a-list"}},            # $in expects list
         {"name": {"$nin": "not-a-list"}},           # $nin expects list
         {"$not": [{"name": "alpha"}]},              # $not expects object, not list
+        {"name": {"$regex": 123}},                    # $regex expects string or compiled regex
+        {"name": {"$options": "i"}},                # $options requires $regex
     ],
 )
 def test_normalize_query_raises_query_validation_error(query: dict) -> None:
