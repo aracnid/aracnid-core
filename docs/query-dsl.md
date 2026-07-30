@@ -146,6 +146,8 @@ To ensure consistent cross-adapter behavior, temporal values follow this contrac
 
 To remain close to MongoDB Query Language, Query DSL treats `{}` as a match-all predicate in these cases:
 
+These logical-identity cases are handled during normalization, which may simplify query shape before adapter translation.
+
 - top-level query: no filter / match all
 - child predicate within `$and`: logical TRUE
 - child predicate within `$or`: logical TRUE

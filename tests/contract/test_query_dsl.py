@@ -93,6 +93,10 @@ def test_normalize_elides_true_child_from_and() -> None:
     assert normalize_query({"$and": [{}, {"a": 1}]}) == {"a": {"$eq": 1}}
 
 
+def test_normalize_all_true_children_in_and_becomes_match_all() -> None:
+    assert normalize_query({"$and": [{}, {}]}) == {}
+
+
 def test_normalize_true_child_in_or_becomes_match_all() -> None:
     assert normalize_query({"$or": [{"a": 1}, {}]}) == {}
 
