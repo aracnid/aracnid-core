@@ -168,7 +168,7 @@ def normalize_sort(sort: SortSpec | None) -> SortSpec:
     return [{field: direction} for entry in sort for field, direction in entry.items()]
 
 
-def _validate_node(node: Any, path: str) -> None:
+def _validate_node(node: Any, path: str, *, allow_empty: bool = False) -> None:
     """Recursively validate a predicate node.
 
     Args:
@@ -182,7 +182,10 @@ def _validate_node(node: Any, path: str) -> None:
         raise QueryValidationError(f"{path}: predicate node must be an object.")
 
     if not node:
-        # empty dict only valid at top-level for "no filter"; here it is nested
+        if allow_empty:
+            return
+        # empty dict only valid at top-level for "no filter" unless explicitly
+        # allowed as a logical identity child under $and / $or.
         raise QueryValidationError(f"{path}: empty predicate object is not allowed.")
 
     logical_keys = [k for k in node if k in LOGICAL_OPS]
@@ -214,7 +217,7 @@ def _validate_node(node: Any, path: str) -> None:
                     f"{path}.{op}: must be a non-empty list of predicates."
                 )
             for i, child in enumerate(value):
-                _validate_node(child, f"{path}.{op}[{i}]")
+                _validate_node(child, f"{path}.{op}[{i}]", allow_empty=True)
         elif op == "$not":
             if not isinstance(value, dict):
                 raise QueryValidationError(f"{path}.$not: must be a predicate object.")
@@ -303,12 +306,27 @@ def _normalize_literal(value: Any) -> Any:
 
 def _normalize_node(node: dict[str, Any]) -> dict[str, Any]:
     """Recursively normalize a predicate node into canonical explicit form."""
+    if not node:
+        return {}
+
     # logical node
     for op in LOGICAL_OPS:
         if op in node:
             if op in {"$and", "$or"}:
                 normalized_children = [_normalize_node(child) for child in node[op]]
-                return {op: normalized_children}
+
+                if op == "$and":
+                    non_empty_children = [child for child in normalized_children if child != {}]
+                    if not non_empty_children:
+                        return {}
+                    if len(non_empty_children) == 1:
+                        return non_empty_children[0]
+                    return {"$and": non_empty_children}
+
+                if any(child == {} for child in normalized_children):
+                    return {}
+
+                return {"$or": normalized_children}
             if op == "$not":
                 return {"$not": _normalize_node(node["$not"])}
 
