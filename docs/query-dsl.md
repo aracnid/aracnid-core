@@ -35,6 +35,8 @@ read_many(
 If `query` is `None` or `{}`, no filtering is applied.  
 If `sort` is `None`, no sorting is applied.
 
+At the top level, `{}` is the match-all / no-filter query.
+
 ---
 
 ## Canonical DSL Shape
@@ -65,6 +67,19 @@ A query is a predicate object. Query DSL supports equivalent forms:
      ]
    }
    ```
+
+4. **Logical identity form**
+
+   ```json
+   {
+     "$and": [
+       {},
+       { "status": { "$eq": "active" } }
+     ]
+   }
+   ```
+
+   Within `$and` and `$or`, an empty predicate object `{}` represents a logical TRUE / match-all predicate.
 
 Multiple operators on the same field are combined with implicit AND.
 
@@ -126,6 +141,18 @@ To ensure consistent cross-adapter behavior, temporal values follow this contrac
 - `$and`: array of predicates, length >= 1
 - `$or`: array of predicates, length >= 1
 - `$not`: single predicate object
+
+#### Empty predicate semantics (`{}`)
+
+To remain close to MongoDB Query Language, Query DSL treats `{}` as a match-all predicate in these cases:
+
+These logical-identity cases are handled during normalization, which may simplify query shape before adapter translation.
+
+- top-level query: no filter / match all
+- child predicate within `$and`: logical TRUE
+- child predicate within `$or`: logical TRUE
+
+`{}` is not a general-purpose predicate literal and is not valid as the operand of `$not`.
 
 ### Field operators
 
@@ -266,6 +293,40 @@ The following are semantically equivalent:
 ]
 ```
 
+### 5) AND with logical TRUE
+
+```json
+{
+  "$and": [
+    {},
+    { "status": { "$eq": "active" } }
+  ]
+}
+```
+
+Equivalent to:
+
+```json
+{ "status": { "$eq": "active" } }
+```
+
+### 6) OR with logical TRUE
+
+```json
+{
+  "$or": [
+    { "status": { "$eq": "draft" } },
+    {}
+  ]
+}
+```
+
+Equivalent to the match-all query:
+
+```json
+{}
+```
+
 ---
 
 ## Invalid Examples
@@ -307,9 +368,17 @@ Reason: `$exists` must be boolean.
 
 Reason: object must be either logical-node or field-node (not both).
 
+#### 5) Empty predicate under `$not`
+
+```json
+{ "$not": {} }
+```
+
+Reason: `{}` is only valid as the top-level no-filter query or as a child predicate within `$and` / `$or`.
+
 ### Sort examples
 
-#### 5) Bad direction
+#### 6) Bad direction
 
 ```json
 [{ "DueDate": 0 }]
@@ -317,7 +386,7 @@ Reason: object must be either logical-node or field-node (not both).
 
 Reason: direction must be `1` or `-1`.
 
-#### 6) Multiple keys in one sort entry
+#### 7) Multiple keys in one sort entry
 
 ```json
 [{ "DueDate": 1, "Priority": -1 }]
@@ -325,7 +394,7 @@ Reason: direction must be `1` or `-1`.
 
 Reason: each sort entry must contain exactly one field.
 
-#### 7) Duplicate sort field
+#### 8) Duplicate sort field
 
 ```json
 [{ "DueDate": 1 }, { "DueDate": -1 }]
@@ -341,26 +410,41 @@ Reason: duplicate sort fields are invalid.
 
 1. Query must be a JSON-like object (`dict`).
 2. Top-level node must be either:
+
    - logical node (`$and` / `$or` / `$not`), or
    - field node (`{ fieldName: condition, ... }`)
+
 3. Logical node rules:
+
    - `$and` and `$or` require non-empty arrays of predicate objects.
-   - `$not` requires exactly one predicate object.
+   - `$and` and `$or` children MAY be `{}`, which represents logical TRUE.
+   - `$not` requires exactly one non-empty predicate object.
+
 4. Field node rules:
+
    - Field names MUST NOT start with `$`.
    - Field condition may be:
      - scalar shorthand (interpreted as `$eq`)
      - explicit operator object (`{"$eq": ...}`)
+
 5. Operator rules:
+
    - only supported operators allowed.
    - `$in`/`$nin` require non-empty arrays.
    - `$exists` requires boolean.
-  - `$regex` requires a string pattern (or compiled regex object in language runtimes that support it).
-  - `$options` requires a string containing only `i`, `m`, `s`, `x`, `u` and requires `$regex` in the same operator object.
+   - `$regex` requires a string pattern (or compiled regex object in language runtimes that support it).
+   - `$options` requires a string containing only `i`, `m`, `s`, `x`, `u` and requires `$regex` in the same operator object.
+
 6. Null handling:
+
    - `{"field": null}` is valid and equivalent to `{"field":{"$eq":null}}`.
    - adapters decide backend-specific null semantics.
-7. Empty query (`None` or `{}`) means “no filter”.
+
+7. Empty predicate handling:
+
+   - top-level `None` or `{}` means “no filter”.
+   - nested `{}` is valid only as a child of `$and` or `$or`, where it means logical TRUE / match all.
+   - nested `{}` is otherwise invalid.
 
 ### Sort validation
 
@@ -383,6 +467,10 @@ Normalization MUST produce canonical explicit DSL.
   - `{"status":"active"}` -> `{"status":{"$eq":"active"}}`
 - Multi-field shorthand:
   - `{"a":1,"b":2}` -> `{"$and":[{"a":{"$eq":1}},{"b":{"$eq":2}}]}`
+- Logical identity elimination:
+  - `{"$and":[{}, P]}` -> `P`
+  - `{"$and":[{}, {}]}` -> `{}`
+  - `{"$or":[{}, P]}` -> `{}`
 - Preserve already-canonical logical structure.
 - Reject ambiguous/invalid structures early with `QueryValidationError`.
 
@@ -440,7 +528,7 @@ UnsupportedQueryError: Adapter 'airtable' does not support operator '$startsWith
 
 ## Versioning
 
-- This document defines **Query DSL v1** (with v1.2.0 temporal/sort clarifications).
+- This document defines **Query DSL v1** (with v1.2.1 logical identity clarification for `{}` inside `$and` / `$or`).
 - New operators or semantics changes require:
   - doc update,
   - tests,

@@ -28,6 +28,8 @@ def test_validate_logical_nodes() -> None:
     validate_query({"$and": [{"a": {"$eq": 1}}, {"b": {"$gt": 2}}]})
     validate_query({"$or": [{"a": 1}, {"b": 2}]})
     validate_query({"$not": {"archived": {"$eq": True}}})
+    validate_query({"$and": [{}, {"a": 1}]})
+    validate_query({"$or": [{"a": 1}, {}]})
 
 
 def test_validate_regex_operator_accepts_mongo_style_pattern() -> None:
@@ -87,6 +89,18 @@ def test_normalize_preserves_logical_structure() -> None:
     }
 
 
+def test_normalize_elides_true_child_from_and() -> None:
+    assert normalize_query({"$and": [{}, {"a": 1}]}) == {"a": {"$eq": 1}}
+
+
+def test_normalize_all_true_children_in_and_becomes_match_all() -> None:
+    assert normalize_query({"$and": [{}, {}]}) == {}
+
+
+def test_normalize_true_child_in_or_becomes_match_all() -> None:
+    assert normalize_query({"$or": [{"a": 1}, {}]}) == {}
+
+
 def test_normalize_preserves_regex_and_options() -> None:
     assert normalize_query({"name": {"$regex": "^acme", "$options": "i"}}) == {
         "name": {"$regex": "^acme", "$options": "i"}
@@ -108,7 +122,7 @@ def test_normalize_none_empty() -> None:
         ({"$not": [{"name": "alpha"}]}, r"\$not.*predicate object"),
         ({"$wat": [{"name": "alpha"}]}, r"unknown logical operator '\$wat'"),
         ({"$and": [{"name": "a"}], "$or": [{"name": "b"}]}, r"logical node must contain exactly one logical operator"),
-        ({"$or": [{"name": "a"}, {}]}, r"empty predicate object is not allowed"),
+        ({"$not": {}}, r"empty predicate object is not allowed"),
         ({"name": {}}, r"operator object cannot be empty"),
         ({"name": {"$wat": 1}}, r"unsupported field operator '\$wat'"),
         ({"name": {"$in": "not-a-list"}}, r"\$in.*non-empty list"),
@@ -132,6 +146,7 @@ def test_validate_query_raises_expected_errors(query, match: str) -> None:
         {"$or": {"name": "alpha"}},
         {"name": {"$exists": "yes"}},
         {"name": {"$in": []}},
+        {"$not": {}},
         {"$not": [{"name": "alpha"}]},
         {"name": {}},
         {"name": {"$regex": 123}},
