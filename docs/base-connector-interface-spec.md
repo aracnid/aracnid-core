@@ -50,6 +50,25 @@ Implementations MUST:
 
 ## Method contract (required)
 
+### Single-record write outcomes
+
+The following rules apply to `create_one`, `update_one`, `replace_one`, and
+`delete_one`. Import the shared exceptions from `aracnid_core` or
+`aracnid_core.exceptions`.
+
+| Condition | Result |
+| --- | --- |
+| Invalid local input | Raise `ValueError` before dispatch. |
+| Provider confirmed it declined the write without applying it | Raise `WriteRejectedError` and preserve the available reason. |
+| Request may have reached the provider and its effect cannot be confirmed | Raise `WriteOutcomeUnknownError`. This includes a lost response after dispatch. |
+| Other runtime failure, such as a transport failure known to occur before dispatch | Raise `RuntimeError`. |
+
+Both write exceptions inherit from `RuntimeError`. A timeout or transport error
+alone does not establish rejection. Preserve the original exception as the cause
+when translating a provider error. Provider adapters preserve the shared
+classification so the calling operation can decide whether to reconcile or
+resubmit the write.
+
 ## 1) create_one
 
 ```python
@@ -69,7 +88,7 @@ Create a new record/document/entity.
 ### Errors
 
 - `ValueError` for invalid input shape.
-- `RuntimeError` for provider/API failures.
+- Other failures follow the single-record write outcomes above.
 
 ---
 
@@ -132,7 +151,8 @@ Fetch multiple entities matching provider-supported filtering.
 update_one(record_id: str, changes: dict[str, Any]) -> dict[str, Any]
 ```
 
-Partial update (patch-like semantics) of a single entity.
+Partial update (patch-like semantics) of an existing entity by ID.
+The implementation must guarantee that the update creates no record.
 
 ### Input
 
@@ -146,7 +166,9 @@ Partial update (patch-like semantics) of a single entity.
 ### Errors
 
 - `ValueError` for invalid inputs.
-- `RuntimeError` for provider/API failures.
+- `RecordNotFoundError` when the update target is confirmed missing. This is a
+  subtype of `WriteRejectedError`.
+- Other failures follow the single-record write outcomes above.
 
 ---
 
@@ -170,7 +192,7 @@ Full replacement (put-like semantics) of a single entity.
 ### Errors
 
 - `ValueError` for invalid inputs.
-- `RuntimeError` for provider/API failures.
+- Other failures follow the single-record write outcomes above.
 
 ---
 
@@ -195,7 +217,7 @@ Delete one entity.
 ### Errors
 
 - `ValueError` for invalid inputs.
-- `RuntimeError` for provider/API failures.
+- Other failures follow the single-record write outcomes above.
 
 ### Notes
 
@@ -406,6 +428,9 @@ Optional provider-specific keys are allowed.
 6. `delete_one` returns `bool` and follows documented not-found behavior.
 7. `capabilities` exists and includes all required keys.
 8. Input objects are not mutated by connector methods.
+9. Updating a confirmed missing ID raises `RecordNotFoundError` and creates nothing.
+10. Provider-specific tests verify confirmed write rejection and an unknown
+    outcome, including a lost response after dispatch.
 
 ### Capability-aware optional assertions
 

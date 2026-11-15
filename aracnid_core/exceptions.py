@@ -6,6 +6,18 @@ class AracnidError(Exception):
     pass
 
 
+class WriteRejectedError(AracnidError, RuntimeError):
+    """The provider confirmed that it declined the write without applying it."""
+
+
+class RecordNotFoundError(WriteRejectedError):
+    """The requested write could not proceed because the target does not exist."""
+
+
+class WriteOutcomeUnknownError(AracnidError, RuntimeError):
+    """The write may have reached the provider and its effect is unconfirmed."""
+
+
 class QueryValidationError(AracnidError, ValueError):
     """Raised when a query does not conform to Query DSL v1.
     """

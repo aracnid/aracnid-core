@@ -6,6 +6,7 @@ from aracnid_core.base import QueryDict, BaseConnector
 from aracnid_core.contract_tests import base_connector_contract as contract_tests
 from aracnid_core.contract_tests import query_dsl_sort_contract as sort_contract_tests
 from aracnid_core.contract_tests import query_dsl_temporal_contract as temporal_contract_tests
+from aracnid_core.exceptions import RecordNotFoundError
 from aracnid_core.query_dsl import SortSpec
 
 
@@ -36,7 +37,7 @@ class DummyConnector(BaseConnector):
             raise ValueError
         if not isinstance(changes, dict):
             raise ValueError
-        raise RuntimeError("not found")
+        raise RecordNotFoundError("not found")
 
     def replace_one(self, record_id, new_record):
         if not isinstance(record_id, str) or not record_id:

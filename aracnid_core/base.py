@@ -20,6 +20,12 @@ class BaseConnector(ABC):
 
     Required property:
       - capabilities
+
+    Single-record writes report a confirmed provider rejection as
+    WriteRejectedError and preserve the provider's reason. If the request may
+    have reached the provider and its effect cannot be confirmed, they raise
+    WriteOutcomeUnknownError. Invalid input raises ValueError before dispatch.
+    Provider adapters preserve these classifications for the calling operation.
     """
     @property
     @abstractmethod
@@ -69,7 +75,10 @@ class BaseConnector(ABC):
 
     @abstractmethod
     def update_one(self, record_id: str, changes: dict[str, Any]) -> dict[str, Any]:
-        """Update a single record by its unique identifier with the given changes.
+        """Apply changes to an existing record identified by record_id.
+
+        Raise RecordNotFoundError if the target is confirmed missing.
+        This method must never create a record.
         """
         raise NotImplementedError
 
@@ -101,4 +110,4 @@ class BaseConnector(ABC):
         Implementations should assume both are already validated
         and normalized.
         """
-        raise NotImplementedError    
+        raise NotImplementedError

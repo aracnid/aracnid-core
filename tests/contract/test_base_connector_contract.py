@@ -4,7 +4,10 @@ from typing import Any
 
 import pytest
 
+from aracnid_core import RecordNotFoundError, WriteOutcomeUnknownError, WriteRejectedError
 from aracnid_core.base import QueryDict, BaseConnector
+from aracnid_core.contract_tests import base_connector_contract
+from aracnid_core.exceptions import AracnidError
 from aracnid_core.query_dsl import SortSpec
 
 
@@ -80,7 +83,7 @@ class DummyConnector(BaseConnector):
         if not isinstance(changes, dict):
             raise ValueError("changes must be a dict")
         if record_id not in self._store:
-            raise RuntimeError("Provider failure: record not found for update")
+            raise RecordNotFoundError(f"Record {record_id!r} not found")
         self._store[record_id]["fields"].update(dict(changes))
         return dict(self._store[record_id])
 
@@ -126,6 +129,30 @@ class DummyConnector(BaseConnector):
 @pytest.fixture
 def connector() -> DummyConnector:
     return DummyConnector()
+
+
+@pytest.fixture
+def missing_record_id() -> str:
+    return "rec_missing"
+
+
+@pytest.fixture
+def valid_update_changes() -> dict[str, Any]:
+    return {"name": "alpha"}
+
+
+test_update_one_missing_record_creates_nothing = (
+    base_connector_contract.test_update_one_missing_record_creates_nothing
+)
+
+
+def test_write_errors_preserve_failure_classification() -> None:
+    assert issubclass(RecordNotFoundError, WriteRejectedError)
+    assert not issubclass(WriteOutcomeUnknownError, WriteRejectedError)
+    assert not issubclass(WriteRejectedError, WriteOutcomeUnknownError)
+    for error in (WriteRejectedError, WriteOutcomeUnknownError):
+        assert issubclass(error, AracnidError)
+        assert issubclass(error, RuntimeError)
 
 
 def test_capabilities_contains_required_keys(connector: DummyConnector) -> None:

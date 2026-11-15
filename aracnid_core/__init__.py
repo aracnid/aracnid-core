@@ -1,5 +1,6 @@
 from .base import BaseConnector
 from .datetime_coercion import coerce_datetime_timezone, parse_iso_datetime
+from .exceptions import RecordNotFoundError, WriteOutcomeUnknownError, WriteRejectedError
 from .query_dsl import QueryDict, SortSpec
 from .timezone_config import DateTimeTZConfig, DateTimeTZMode, load_datetime_tz_config_from_env
 
@@ -16,7 +17,10 @@ __all__ = [
     "DateTimeTZConfig",
     "DateTimeTZMode",
     "QueryDict",
+    "RecordNotFoundError",
     "SortSpec",
+    "WriteOutcomeUnknownError",
+    "WriteRejectedError",
     "coerce_datetime_timezone",
     "load_datetime_tz_config_from_env",
     "parse_iso_datetime",

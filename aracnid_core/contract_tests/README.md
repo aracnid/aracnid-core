@@ -52,3 +52,13 @@ pytest -m contract
 ```
 
 Use environment-gated fixtures for live provider credentials.
+
+To check that an update cannot create a record, also re-export
+`test_update_one_missing_record_creates_nothing`. Supply a `missing_record_id`
+fixture with a valid provider-native ID known to be absent and a
+`valid_update_changes` fixture with a payload valid for the test store. Use an
+isolated store where `read_many()` lists all records and concurrent writes are
+excluded.
+
+Test write outcome classification with provider-specific fixtures that simulate
+a confirmed rejection and a lost response after dispatch.

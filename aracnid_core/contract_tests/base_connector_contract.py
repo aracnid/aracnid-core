@@ -5,6 +5,7 @@ from typing import Protocol, runtime_checkable
 import pytest
 
 from aracnid_core.base import BaseConnector
+from aracnid_core.exceptions import RecordNotFoundError
 
 REQUIRED_CAPABILITY_KEYS = {
     "supports_query",
@@ -78,6 +79,22 @@ def test_update_one_validates_input(connector: BaseConnector) -> None:
         connector.update_one("", {"a": 1})
     with pytest.raises(ValueError):
         connector.update_one("id", "not-a-dict")  # type: ignore[arg-type]
+
+
+@pytest.mark.contract
+def test_update_one_missing_record_creates_nothing(
+    connector: BaseConnector,
+    missing_record_id: str,
+    valid_update_changes: dict,
+) -> None:
+    assert connector.read_one(missing_record_id) is None
+    before = connector.read_many()
+
+    with pytest.raises(RecordNotFoundError):
+        connector.update_one(missing_record_id, valid_update_changes)
+
+    assert connector.read_one(missing_record_id) is None
+    assert len(connector.read_many()) == len(before)
 
 
 @pytest.mark.contract
