@@ -6,6 +6,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.6.0] - 2026-11-14
+
+### Added
+
+- Exported `RecordNotFoundError`, `WriteRejectedError`, and
+  `WriteOutcomeUnknownError`. All three remain catchable as `RuntimeError`.
+
+### Changed
+
+- Required `update_one` to update an existing record by ID and raise
+  `RecordNotFoundError` for a confirmed missing target without creating a record
+  (D-074).
+- Defined separate outcomes for confirmed provider rejections and writes whose
+  effects cannot be confirmed. Provider adapters preserve this distinction so
+  calling operations can decide whether to reconcile or resubmit (D-075).
+
+### Testing
+
+- Added a reusable conformance check that updating a missing ID raises
+  `RecordNotFoundError` and creates no record.
+- Added coverage for the new exceptions' inheritance and distinct write outcome
+  classifications.
+
 ## [v1.5.1] - 2026-07-30
 
 ### Changed
